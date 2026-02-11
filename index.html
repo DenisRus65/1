@@ -4,46 +4,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Приватная связь</title>
+    <!-- ПРАВИЛЬНАЯ ССЫЛКА ТУТ: -->
     <script src="https://unpkg.com"></script>
     <style>
         body { font-family: sans-serif; text-align: center; padding: 20px; background: #f0f0f0; }
-        .status { margin: 20px; padding: 10px; border-radius: 5px; background: #fff; }
+        .status { margin: 20px; padding: 10px; border-radius: 5px; background: #fff; border: 1px solid #ccc; word-wrap: break-word; }
         button { padding: 15px 30px; font-size: 18px; cursor: pointer; border: none; border-radius: 5px; background: #28a745; color: white; }
-        input { padding: 10px; font-size: 16px; margin: 10px; width: 200px; }
+        input { padding: 10px; font-size: 16px; margin: 10px; width: 80%; max-width: 300px; }
     </style>
 </head>
 <body>
     <h2>Аудио-комната</h2>
-    <div class="status" id="my-id">Ваш ID: Загрузка...</div>
+    <div class="status" id="my-id">Инициализация связи...</div>
     
     <input type="text" id="peer-id" placeholder="Введите ID друга">
-    <button onclick="makeCall()">Позвонить</button>
+    <br>
+    <button onclick="makeCall()">Позвонить другу</button>
     
-    <div id="active-calls"></div>
+    <div id="active-calls" style="margin-top: 20px; font-weight: bold; color: #007bff;"></div>
 
     <script>
-        // Инициализация Peer с использованием публичного сервера
+        // Создаем объект Peer
         const peer = new Peer(); 
 
-        // Показываем ваш ID, когда он создастся
+        // Когда Peer готов, получаем ID
         peer.on('open', (id) => {
-            document.getElementById('my-id').innerText = "Ваш ID для друга: " + id;
+            console.log('Мой ID:', id);
+            document.getElementById('my-id').innerHTML = "<b>Ваш ID:</b><br>" + id;
         });
 
-        // Слушаем входящие звонки
+        // Обработка входящего звонка
         peer.on('call', (call) => {
-            navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-                call.answer(stream); // Отвечаем своим голосом
-                handleStream(call);
-            });
+            if (confirm("Входящий звонок! Ответить?")) {
+                navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+                    call.answer(stream);
+                    handleStream(call);
+                }).catch(err => alert("Ошибка доступа к микрофону: " + err));
+            }
         });
 
         function makeCall() {
             const remoteId = document.getElementById('peer-id').value;
+            if (!remoteId) return alert("Введите ID друга!");
+            
             navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
                 const call = peer.call(remoteId, stream);
                 handleStream(call);
-            });
+            }).catch(err => alert("Ошибка доступа к микрофону: " + err));
         }
 
         function handleStream(call) {
@@ -51,9 +58,15 @@
                 const audio = document.createElement('audio');
                 audio.srcObject = remoteStream;
                 audio.play();
-                document.getElementById('active-calls').innerText = "Связь установлена!";
+                document.getElementById('active-calls').innerText = "Связь установлена! Вы говорите.";
             });
         }
+
+        // Ловим ошибки
+        peer.on('error', (err) => {
+            console.error(err);
+            alert("Ошибка PeerJS: " + err.type);
+        });
     </script>
 </body>
 </html>
