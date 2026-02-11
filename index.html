@@ -1,86 +1,69 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Приватная связь</title>
-    <!-- Вставляем библиотеку прямо кодом -->
-    <script>
-        // Здесь была бы библиотека, но чтобы не раздувать чат, 
-        // я использую официальный загрузчик, который работает медленнее, но вернее.
-    </script>
+    <title>Рация 1.0</title>
     <script src="https://cdn.jsdelivr.net"></script>
-    
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f0f0f0; }
-        .status { margin: 20px; padding: 20px; border-radius: 10px; background: #fff; border: 2px solid #28a745; word-wrap: break-word; font-size: 1.2em; }
-        button { padding: 15px 30px; font-size: 18px; cursor: pointer; border: none; border-radius: 5px; background: #28a745; color: white; transition: 0.3s; }
-        button:hover { background: #218838; }
-        input { padding: 12px; font-size: 16px; margin: 10px; width: 80%; max-width: 300px; border: 1px solid #ccc; border-radius: 5px; }
-        #active-calls { margin-top: 20px; color: #007bff; font-weight: bold; }
+        body { font-family: sans-serif; text-align: center; background: #222; color: #fff; padding: 20px; }
+        .box { background: #333; padding: 20px; border-radius: 15px; border: 2px solid #444; max-width: 400px; margin: 0 auto; }
+        #my-id { color: #0f0; font-weight: bold; word-break: break-all; margin: 10px 0; }
+        input { width: 80%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }
+        button { width: 85%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        #log { margin-top: 20px; color: #aaa; font-size: 14px; }
     </style>
 </head>
 <body>
-    <h2>Аудио-чат (Тест)</h2>
-    <div class="status" id="my-id">Пытаюсь получить ваш ID...</div>
-    
-    <input type="text" id="peer-id" placeholder="Введите ID друга">
-    <br>
-    <button onclick="makeCall()">Позвонить</button>
-    
-    <div id="active-calls"></div>
+    <div class="box">
+        <h3>Твой личный ID:</h3>
+        <div id="my-id">Загрузка...</div>
+        <hr>
+        <input type="text" id="dest-id" placeholder="ID друга">
+        <button onclick="callPeer()">Позвонить</button>
+        <div id="log">Ожидание...</div>
+    </div>
 
     <script>
-        // Функция для запуска, когда библиотека точно загрузилась
-        function startApp() {
-            if (typeof Peer === 'undefined') {
-                document.getElementById('my-id').innerText = "Ошибка: Библиотека не загружена. Попробуйте отключить блокировщик рекламы.";
-                return;
+        // Ждем загрузки скрипта вручную через проверку
+        let checkInt = setInterval(() => {
+            if (typeof Peer !== 'undefined') {
+                clearInterval(checkInt);
+                init();
             }
+        }, 500);
 
-            const peer = new Peer(); 
-
+        function init() {
+            const peer = new Peer();
+            
             peer.on('open', (id) => {
-                document.getElementById('my-id').innerHTML = "<b>Ваш рабочий ID:</b><br>" + id;
+                document.getElementById('my-id').innerText = id;
+                document.getElementById('log').innerText = "Готов к связи";
             });
 
             peer.on('call', (call) => {
-                if (confirm("Входящий звонок! Ответить?")) {
-                    navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-                        call.answer(stream);
-                        handleStream(call);
-                    }).catch(err => alert("Ошибка микрофона: " + err));
-                }
+                navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
+                    call.answer(stream);
+                    setupAudio(call);
+                });
             });
 
-            window.makeCall = function() {
-                const remoteId = document.getElementById('peer-id').value;
-                if (!remoteId) return alert("Введите ID!");
-                
-                navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-                    const call = peer.call(remoteId, stream);
-                    handleStream(call);
-                }).catch(err => alert("Ошибка микрофона: " + err));
-            }
+            window.callPeer = () => {
+                const id = document.getElementById('dest-id').value;
+                navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
+                    const call = peer.call(id, stream);
+                    setupAudio(call);
+                });
+            };
 
-            function handleStream(call) {
-                call.on('stream', (remoteStream) => {
-                    const audio = document.createElement('audio');
-                    audio.srcObject = remoteStream;
-                    audio.autoplay = true;
-                    document.getElementById('active-calls').innerText = "Связь установлена!";
+            function setupAudio(call) {
+                call.on('stream', (stream) => {
+                    const audio = new Audio();
+                    audio.srcObject = stream;
+                    audio.play();
+                    document.getElementById('log').innerText = "В эфире!";
                 });
             }
-
-            peer.on('error', (err) => {
-                alert("Ошибка связи: " + err.type);
-            });
         }
-
-        // Ждем загрузки скрипта и запускаем
-        window.onload = () => {
-            setTimeout(startApp, 1000); // Даем 1 секунду на прогрузку
-        };
     </script>
 </body>
 </html>
