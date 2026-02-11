@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Приватная связь</title>
+    <script src="https://unpkg.com"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f0f0f0; }
+        .status { margin: 20px; padding: 10px; border-radius: 5px; background: #fff; }
+        button { padding: 15px 30px; font-size: 18px; cursor: pointer; border: none; border-radius: 5px; background: #28a745; color: white; }
+        input { padding: 10px; font-size: 16px; margin: 10px; width: 200px; }
+    </style>
+</head>
+<body>
+    <h2>Аудио-комната</h2>
+    <div class="status" id="my-id">Ваш ID: Загрузка...</div>
+    
+    <input type="text" id="peer-id" placeholder="Введите ID друга">
+    <button onclick="makeCall()">Позвонить</button>
+    
+    <div id="active-calls"></div>
+
+    <script>
+        // Инициализация Peer с использованием публичного сервера
+        const peer = new Peer(); 
+
+        // Показываем ваш ID, когда он создастся
+        peer.on('open', (id) => {
+            document.getElementById('my-id').innerText = "Ваш ID для друга: " + id;
+        });
+
+        // Слушаем входящие звонки
+        peer.on('call', (call) => {
+            navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+                call.answer(stream); // Отвечаем своим голосом
+                handleStream(call);
+            });
+        });
+
+        function makeCall() {
+            const remoteId = document.getElementById('peer-id').value;
+            navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+                const call = peer.call(remoteId, stream);
+                handleStream(call);
+            });
+        }
+
+        function handleStream(call) {
+            call.on('stream', (remoteStream) => {
+                const audio = document.createElement('audio');
+                audio.srcObject = remoteStream;
+                audio.play();
+                document.getElementById('active-calls').innerText = "Связь установлена!";
+            });
+        }
+    </script>
+</body>
+</html>
